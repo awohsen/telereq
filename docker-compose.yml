@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  bot:
+    build: .
+    container_name: 'telereq_bot'
+    env_file: '.env'
+    depends_on:
+      - 'mongo'
+
+  mongo:
+    image: 'mongo:latest'
+    container_name: 'telereq_mongo'
+    volumes:
+      - data-volume:/data/db
+    ports:
+      - "127.0.0.1:27017:27017" #to maintain bot out of docker
+
+volumes:
+  data-volume:
+    name: telereq_db
