@@ -103,7 +103,6 @@ func main() {
 		}
 		return nil
 	})
-
 	b.Handle("/accept", func(c tele.Context) error {
 		args := c.Args()
 		if len(args) == 2 {
@@ -129,13 +128,17 @@ func main() {
 				if len(chat.Requests) >= 1 {
 					for _, user := range chat.Requests {
 						err := b.ApproveJoinRequest(ChatID(args[1]), &tele.User{ID: user})
+
 						if err != nil {
-							fmt.Println(err)
-						} else {
-							_, err := removeRequest(chatID, user)
-							if err != nil {
+							switch err {
+							case ErrAlreadyParticipant:
+							case ErrJoinedChannelsLimit: // maybe we can save these someday, but now it's useless
+							default:
+								fmt.Println(err)
 								return err
 							}
+
+							_, _ = removeRequest(chatID, user)
 						}
 					}
 				}
