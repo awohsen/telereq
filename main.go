@@ -106,9 +106,9 @@ func main() {
 	b.Handle("/accept", func(c tele.Context) error {
 		args := c.Args()
 		if len(args) == 2 {
-			switch args[0] {
+			switch args[1] {
 			case "all", "al", "a":
-				chatID, _ := strconv.ParseInt(args[1], 10, 64)
+				chatID, _ := strconv.ParseInt(args[0], 10, 64)
 				chat := &Chat{}
 
 				err := getChat(chat, chatID)
@@ -127,7 +127,7 @@ func main() {
 
 				if len(chat.Requests) >= 1 {
 					for _, user := range chat.Requests {
-						err := b.ApproveJoinRequest(ChatID(args[1]), &tele.User{ID: user})
+						err := b.ApproveJoinRequest(ChatID(args[0]), &tele.User{ID: user})
 
 						if err != nil {
 							switch err.Error() {
@@ -153,10 +153,10 @@ func main() {
 ❕Remember, to perform this command bot should have required administrator permissions on that chat. 
 
 🔘Examples:
-<code>/accept 10 -1001234567890</code>
+<code>/accept -1001234567890 10</code>
 👆Accepts 10 join requests in the chat with id <code>-1001234567890.</code>
 
-<code>/accept all @username</code>
+<code>/accept @username all</code>
 👆 Accepts all join requests sent to @username chat.`)
 		}
 		return nil
