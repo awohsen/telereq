@@ -11,6 +11,6 @@ func (i ChatID) Recipient() string {
 
 // made pr for this but till then we should implement it
 var (
-	ErrAlreadyParticipant  = tele.NewError(400, "Bad Request: USER_ALREADY_PARTICIPANT", "User is already a participant")
-	ErrJoinedChannelsLimit = tele.NewError(400, "Bad Request: CHANNELS_TOO_MUCH", "User reached joined channels limit")
+	ErrAlreadyParticipant  = tele.NewError(400, "Bad Request: USER_ALREADY_PARTICIPANT", "Bad Request: USER_ALREADY_PARTICIPANT")
+	ErrJoinedChannelsLimit = tele.NewError(400, "Bad Request: CHANNELS_TOO_MUCH", "Bad Request: CHANNELS_TOO_MUCH")
 )

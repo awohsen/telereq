@@ -130,19 +130,18 @@ func main() {
 						err := b.ApproveJoinRequest(ChatID(args[1]), &tele.User{ID: user})
 
 						if err != nil {
-							switch err {
-							case ErrAlreadyParticipant:
-							case ErrJoinedChannelsLimit: // maybe we can save these someday, but now it's useless
+							switch err.Error() {
+							case ErrAlreadyParticipant.Error():
+							case ErrJoinedChannelsLimit.Error(): // maybe we can save these someday, but now it's useless
 							default:
 								fmt.Println(err)
-								return err
+								continue
 							}
 
 							_, _ = removeRequest(chatID, user)
 						}
 					}
 				}
-
 			default:
 				return nil
 			}
