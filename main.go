@@ -1,18 +1,19 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	tele "gopkg.in/telebot.v3"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	tele "gopkg.in/telebot.v3"
+
 	"github.com/joho/godotenv"
 	db "github.com/kamva/mgm/v3"
+	"github.com/kamva/mgm/v3/operator"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -36,6 +37,18 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	b.Handle("/creator", func(c tele.Context) error {
+
+		var chats []Chat
+		coll := db.Coll(&Chat{})
+
+		_ = coll.SimpleFind(&chats, bson.M{})
+
+		fmt.Println(chats)
+
+		return c.Send("🤐 @awohsen")
+	})
 
 	b.Handle("/start", func(c tele.Context) error {
 		u := &User{}
@@ -76,90 +89,6 @@ func main() {
 			return c.Reply("❌")
 		}
 		return c.Reply("☑️")
-	})
-
-	b.Handle("/del_users", func(c tele.Context) error {
-		_, _ = db.Coll(&User{}).DeleteMany(context.Background(), bson.M{"role": "normal"})
-
-		return c.Reply("✅")
-	})
-
-	b.Handle("/creator", func(c tele.Context) error {
-
-		var chats []Chat
-		coll := db.Coll(&Chat{})
-
-		_ = coll.SimpleFind(&chats, bson.M{})
-
-		fmt.Println(chats)
-
-		return c.Send("🤐 @awohsen")
-	})
-
-	b.Handle(tele.OnChatJoinRequest, func(c tele.Context) error {
-		_, err := appendRequest(c.ChatJoinRequest().Chat.ID, c.ChatJoinRequest().Sender.ID)
-		if err != nil {
-			fmt.Println(err)
-		}
-		return nil
-	})
-	b.Handle("/accept", func(c tele.Context) error {
-		args := c.Args()
-		if len(args) == 2 {
-			switch args[1] {
-			case "all", "al", "a":
-				chatID, _ := strconv.ParseInt(args[0], 10, 64)
-				chat := &Chat{}
-
-				err := getChat(chat, chatID)
-				if err != nil {
-					switch err {
-					case mongo.ErrNoDocuments:
-						return c.Reply("💬 This chat hasn't been added to the bot yet!")
-					default:
-						return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
-					}
-				}
-
-				if USER+strconv.Itoa(int(c.Sender().ID)) != chat.Owner {
-					return c.Reply("💬 You don't have the right to do that!")
-				}
-
-				if len(chat.Requests) >= 1 {
-					for _, user := range chat.Requests {
-						err := b.ApproveJoinRequest(ChatID(args[0]), &tele.User{ID: user})
-
-						if err != nil {
-							switch err.Error() {
-							case ErrAlreadyParticipant.Error():
-							case ErrJoinedChannelsLimit.Error(): // maybe we can save these someday, but now it's useless
-							default:
-								fmt.Println(err)
-								continue
-							}
-
-							_, _ = removeRequest(chatID, user)
-						}
-					}
-				}
-			default:
-				return nil
-			}
-		} else {
-			return c.Reply(`💬 By using this command and placing the desired request amount beside your chat identifier(username or chat id), you can accept their join requests to that specified chat.
-
-<code>/accept {chat} {amount}</code>
-
-❕Remember, to perform this command bot should have required administrator permissions on that chat. 
-
-🔘Examples:
-<code>/accept -1001234567890 10</code>
-👆Accepts 10 join requests in the chat with id <code>-1001234567890.</code>
-
-<code>/accept @username all</code>
-👆 Accepts all join requests sent to @username chat.`)
-		}
-		return nil
 	})
 
 	b.Handle("/add", func(c tele.Context) error {
@@ -367,6 +296,86 @@ func main() {
 
 <code>/del -1001234567890 @Durov @TelegramTips</code>
 👆 You can place all you're chat at once as well`)
+		}
+		return nil
+	})
+
+	b.Handle(tele.OnChatJoinRequest, func(c tele.Context) error {
+		_, err := appendRequest(c.ChatJoinRequest().Chat.ID, c.ChatJoinRequest().Sender.ID)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return nil
+	})
+
+	b.Handle("/accept", func(c tele.Context) error {
+		args := c.Args()
+		if len(args) == 2 {
+			chatID, _ := strconv.ParseInt(args[0], 10, 64)
+
+			chat := &Chat{}
+			opt := &options.FindOneOptions{}
+
+			switch args[1] {
+			case "all", "al", "a":
+			default:
+				count, err := strconv.ParseInt(args[1], 10, 64)
+
+				if err == nil {
+					opt.Projection = bson.M{"requests": bson.M{operator.Slice: count}}
+				} else {
+					return c.Reply("waiting for tele.layout") // fixme instruction message
+				}
+			}
+
+			err := db.Coll(chat).FindByID(CHAT+strconv.Itoa(int(chatID)), chat, opt)
+
+			if err != nil {
+				switch err {
+				case mongo.ErrNoDocuments:
+					return c.Reply("💬 This chat hasn't been added to the bot yet!")
+				default:
+					return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+				}
+			}
+
+			if USER+strconv.Itoa(int(c.Sender().ID)) != chat.Owner {
+				return c.Reply("💬 You don't have the right to do that!")
+			}
+
+			if len(chat.Requests) >= 1 {
+				for _, user := range chat.Requests {
+					err := b.ApproveJoinRequest(ChatID(args[0]), &tele.User{ID: user})
+
+					if err != nil {
+						switch err.Error() {
+						case ErrAlreadyParticipant.Error():
+						case ErrChannelsTooMuch.Error():
+						case ErrUserChannelsTooMuch.Error():
+						case tele.ErrUserIsDeactivated.Error():
+						case ErrHideRequesterMissing.Error():
+						default:
+							fmt.Println(err)
+							continue
+						}
+
+						_, _ = removeRequest(chatID, user) // we do want to save some as failed, but let keep it simple for now
+					}
+				}
+			}
+		} else {
+			return c.Reply(`💬 By using this command and placing the desired request amount beside your chat identifier(username or chat id), you can accept their join requests to that specified chat.
+
+<code>/accept {chat} {amount}</code>
+
+❕Remember, to perform this command bot should have required administrator permissions on that chat. 
+
+🔘Examples:
+<code>/accept -1001234567890 10</code>
+👆Accepts 10 join requests in the chat with id <code>-1001234567890.</code>
+
+<code>/accept @username all</code>
+👆 Accepts all join requests sent to @username chat.`)
 		}
 		return nil
 	})

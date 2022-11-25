@@ -1,21 +1,21 @@
 package main
 
 import (
-	"github.com/kamva/mgm/v3"
+	"strconv"
+
 	db "github.com/kamva/mgm/v3"
 	"github.com/kamva/mgm/v3/operator"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"strconv"
 )
 
 const CHAT = "CHAT_"
 
 type Chat struct {
-	mgm.DateFields `bson:",inline"`
-	ID             string  `json:"id" bson:"_id,omitempty"`
-	Owner          string  `json:"owner" bson:"owner"`
-	Requests       []int64 `json:"requests" bson:"requests"`
+	db.DateFields `bson:",inline"`
+	ID            string  `json:"id" bson:"_id,omitempty"`
+	Owner         string  `json:"owner" bson:"owner"`
+	Requests      []int64 `json:"requests" bson:"requests"`
 	//Links          []string `json:"links" bson:"links"`
 }
 

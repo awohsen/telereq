@@ -1,20 +1,20 @@
 package main
 
 import (
-	"github.com/kamva/mgm/v3"
-	db "github.com/kamva/mgm/v3"
 	"os"
 	"strconv"
 	"strings"
+
+	db "github.com/kamva/mgm/v3"
 )
 
 const USER = "USER_"
 
 type User struct {
-	mgm.DateFields `bson:",inline"`
-	ID             string `json:"id" bson:"_id,omitempty"`
-	Role           string `json:"role" bson:"role"`
-	State          string `json:"state" bson:"state"`
+	db.DateFields `bson:",inline"`
+	ID            string `json:"id" bson:"_id,omitempty"`
+	Role          string `json:"role" bson:"role"`
+	State         string `json:"state" bson:"state"`
 }
 
 func (m *User) PrepareID(id interface{}) (interface{}, error) {
