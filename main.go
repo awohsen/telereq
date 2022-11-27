@@ -57,7 +57,7 @@ func main() {
 
 		fmt.Println(chats)
 
-		return c.Send("🤐 @awohsen")
+		return c.Send(lt.Text(c, "creator"))
 	})
 
 	b.Handle("/start", func(c tele.Context) error {
@@ -75,16 +75,15 @@ func main() {
 
 				err = db.Coll(&User{}).Create(u)
 				if err != nil {
-					return c.Reply("err_database")
+					return c.Reply(lt.Text(c, "err.database"))
 				}
-				return c.Reply("command_start")
+				return c.Reply(lt.Text(c, "start"))
 
 			default:
-				//todo: report error to developers
-				return c.Reply("err_database")
+				return c.Reply(lt.Text(c, "err.database"))
 			}
 		}
-		return c.Reply("\U0001FAE5")
+		return c.Reply(lt.Text(c, "start"))
 	})
 
 	b.Handle("/language", func(c tele.Context) error {
@@ -96,16 +95,15 @@ func main() {
 			case "en", "fa":
 				err := setUserLocale(c.Sender().ID, args[0])
 				if err != nil {
-					fmt.Println(err)
-					return c.Reply("Err")
+					return c.Reply(lt.Text(c, "err.database"))
 				} else {
-					return c.Reply("✅")
+					return c.Reply(lt.Text(c, "language.succeed"))
 				}
 			default:
-				return c.Reply("Choose between en or fa")
+				return c.Reply(lt.Text(c, "err.language.choose"))
 			}
 		} else {
-			return c.Reply("This is inline keyboard with languages buttons")
+			return c.Reply(lt.Text(c, "language"))
 		}
 	})
 
@@ -114,14 +112,14 @@ func main() {
 
 		err := db.Coll(u).FindByID(USER+strconv.Itoa(int(c.Sender().ID)), u)
 		if err != nil {
-			return c.Reply("❌")
+			return c.Reply(lt.Text(c, "err.database"))
 		}
 
 		err = db.Coll(u).Delete(u)
 		if err != nil {
-			return c.Reply("❌")
+			return c.Reply(lt.Text(c, "err.database"))
 		}
-		return c.Reply("☑️")
+		return c.Reply(lt.Text(c, "del.succeed"))
 	})
 
 	b.Handle("/add", func(c tele.Context) error {
@@ -130,7 +128,7 @@ func main() {
 		if len(args) >= 1 {
 			for _, arg := range args {
 				if len(args) > 1 {
-					_ = c.Send("💬 Processing chat \"<code>" + arg + "</code>\":")
+					_ = c.Send("💬 Processing chat \"<code>" + arg + "</code>\":") //fixme locales
 				}
 
 				chat, err := b.ChatByUsername(arg)
@@ -138,9 +136,9 @@ func main() {
 				if err != nil {
 					switch err {
 					case tele.ErrChatNotFound:
-						_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
+						_ = c.Reply(lt.Text(c, "err.chat_not_found"))
 					default:
-						_ = c.Reply("err_database")
+						_ = c.Reply(lt.Text(c, "err.database"))
 					}
 					continue
 				}
@@ -150,9 +148,9 @@ func main() {
 				if err != nil {
 					switch err {
 					case tele.ErrChatNotFound:
-						_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
+						_ = c.Reply(lt.Text(c, "err.chat_not_found"))
 					default:
-						_ = c.Reply("err_database")
+						_ = c.Reply(lt.Text(c, "err.database"))
 					}
 					continue
 				}
@@ -164,15 +162,14 @@ func main() {
 					if err != nil {
 						switch err {
 						case mongo.ErrNoDocuments:
-							newchat := newChat(chat.ID, c.Sender().ID)
-							err = db.Coll(&Chat{}).Create(newchat)
+							newChat := newChat(chat.ID, c.Sender().ID)
+							err = db.Coll(&Chat{}).Create(newChat)
 							if err != nil {
-								return c.Reply("err_database")
+								return c.Reply(lt.Text(c, "err.database"))
 							}
-
-							_ = c.Reply("✅")
+							_ = c.Reply(lt.Text(c, "add.succeed"))
 						default:
-							return c.Reply("err_database")
+							return c.Reply(lt.Text(c, "err.database"))
 						}
 						continue
 					}
@@ -188,41 +185,41 @@ func main() {
 								if err != nil {
 									switch err {
 									case tele.ErrChatNotFound:
-										_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
+										_ = c.Reply(lt.Text(c, "err.chat_not_found"))
 									default:
-										_ = c.Reply("err_database")
+										_ = c.Reply(lt.Text(c, "err.database"))
 									}
 									continue
 								}
 								// normal admins can't revoke owner or other admins access
 								if oldAdmin.Role == tele.Creator || oldAdmin.Role == tele.Administrator {
-									_ = c.Reply("💬 This chat was registered to another admin, ask the owner to revoke it for you!")
+									_ = c.Reply(lt.Text(c, "err.del.not_enough_rights"))
 									continue
 								}
 							}
 						}
 						err = delChat(existingChat)
 						if err != nil {
-							return c.Reply("err_database")
+							return c.Reply(lt.Text(c, "err.database"))
 						}
 
-						newchat := newChat(chat.ID, c.Sender().ID)
-						err = db.Coll(&Chat{}).Create(newchat)
+						newChat := newChat(chat.ID, c.Sender().ID)
+						err = db.Coll(&Chat{}).Create(newChat)
 						if err != nil {
-							return c.Reply("err_database")
+							return c.Reply(lt.Text(c, "err.database"))
 						}
 
-						_ = c.Reply("✅")
+						_ = c.Reply(lt.Text(c, "add.succeed"))
 					} else {
-						_ = c.Reply("err_chat_exist")
+						_ = c.Reply(lt.Text(c, "err.add.chat_exist"))
 						continue
 					}
 				} else {
-					_ = c.Reply("💬 You don't have the right to register this chat!")
+					_ = c.Reply(lt.Text(c, "err.add.not_enough_rights"))
 				}
 			}
 		} else {
-			return c.Reply(lt.Text(c, "command_add"))
+			return c.Reply(lt.Text(c, "add"))
 		}
 		return nil
 	})
@@ -232,16 +229,16 @@ func main() {
 		if len(args) >= 1 {
 			for _, arg := range args {
 				if len(args) > 1 {
-					_ = c.Send("💬 Processing chat \"<code>" + arg + "</code>\":")
+					_ = c.Send("💬 Processing chat \"<code>" + arg + "</code>\":") //fixme locales
 				}
 				chat, err := b.ChatByUsername(arg)
 
 				if err != nil {
 					switch err {
 					case tele.ErrChatNotFound:
-						_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
+						_ = c.Reply(lt.Text(c, "err.chat_not_found"))
 					default:
-						_ = c.Reply("err_database")
+						_ = c.Reply(lt.Text(c, "err.database"))
 					}
 					continue
 				}
@@ -252,9 +249,9 @@ func main() {
 				if err != nil {
 					switch err {
 					case mongo.ErrNoDocuments:
-						_ = c.Reply("💬 This chat has not yet registered!")
+						_ = c.Reply(lt.Text(c, "err.del.chat_not_found"))
 					default:
-						return c.Reply("err_database")
+						return c.Reply(lt.Text(c, "err.database"))
 					}
 					continue
 				}
@@ -266,9 +263,9 @@ func main() {
 					if err != nil {
 						switch err {
 						case tele.ErrChatNotFound:
-							_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
+							_ = c.Reply(lt.Text(c, "err.chat_not_found"))
 						default:
-							_ = c.Reply("err_database")
+							_ = c.Reply(lt.Text(c, "err.database"))
 						}
 						continue
 					}
@@ -283,15 +280,15 @@ func main() {
 							if err != nil {
 								switch err {
 								case tele.ErrChatNotFound:
-									_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
+									_ = c.Reply(lt.Text(c, "err.chat_not_found"))
 								default:
-									_ = c.Reply("err_database")
+									_ = c.Reply(lt.Text(c, "err.database"))
 								}
 								continue
 							}
 							// normal admins can't revoke owner or other admins access
 							if oldAdmin.Role == tele.Creator || oldAdmin.Role == tele.Administrator {
-								_ = c.Reply("💬 This chat was registered to another admin, ask the owner to revoke it for you!")
+								_ = c.Reply(lt.Text(c, "err.del.not_enough_rights"))
 								continue
 							}
 						}
@@ -299,12 +296,12 @@ func main() {
 				}
 				err = delChat(existingChat)
 				if err != nil {
-					return c.Reply("err_database")
+					return c.Reply(lt.Text(c, "err.database"))
 				}
-				_ = c.Reply("☑️")
+				_ = c.Reply(lt.Text(c, "del.succeed"))
 			}
 		} else {
-			return c.Reply(lt.Text(c, "command_del"))
+			return c.Reply(lt.Text(c, "del"))
 		}
 		return nil
 	})
@@ -333,7 +330,7 @@ func main() {
 				if err == nil {
 					opt.Projection = bson.M{"requests": bson.M{operator.Slice: count}}
 				} else {
-					return c.Reply("waiting for tele.layout") // fixme instruction message
+					return c.Reply(lt.Text(c, "accept"))
 				}
 			}
 
@@ -342,14 +339,14 @@ func main() {
 			if err != nil {
 				switch err {
 				case mongo.ErrNoDocuments:
-					return c.Reply("💬 This chat hasn't been added to the bot yet!")
+					return c.Reply(lt.Text(c, "err.accept.chat_not_found"))
 				default:
-					return c.Reply("err_database")
+					return c.Reply(lt.Text(c, "err.database"))
 				}
 			}
 
 			if USER+strconv.Itoa(int(c.Sender().ID)) != chat.Owner {
-				return c.Reply("💬 You don't have the right to do that!")
+				return c.Reply(lt.Text(c, "err.accept.not_enough_rights"))
 			}
 
 			if len(chat.Requests) >= 1 {
@@ -373,7 +370,7 @@ func main() {
 				}
 			}
 		} else {
-			return c.Reply("command_accept")
+			return c.Reply(lt.Text(c, "accept"))
 		}
 		return nil
 	})

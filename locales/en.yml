@@ -1,6 +1,14 @@
 # --- Commands ---
-command_start: 🤠 Welcome to robot!
-command_add: |-
+creator: 🤐 @awohsen
+start: 🤠 Welcome to robot!
+
+
+language: This is inline keyboard with languages buttons
+language.succeed: ✅
+err.language.choose: Choose between en or fa
+
+
+add: |-
   💬 By using this command and placing your chat identifier(username or chat id), you can add chats in which you are an admin for further management.
   
   <code>/add {chat}...</code>
@@ -14,22 +22,12 @@ command_add: |-
   
   <code>/add -1001234567890 @Durov @TelegramTips</code>
   👆 You can place all you're chat at once as well
+add.succeed: ✅
+err.add.chat_exist: 💬 This chat was registered before!
+err.add.not_enough_rights: 💬 You don't have the right to register this chat!
 
-command_accept: |-
-  💬 By using this command and placing the desired request amount beside your chat identifier(username or chat id), you can accept their join requests to that specified chat.
 
-  <code>/accept {chat} {amount}</code>
-
-  ❕Remember, to perform this command bot should have required administrator permissions on that chat. 
-
-  🔘Examples:
-  <code>/accept -1001234567890 10</code>
-  👆Accepts 10 join requests in the chat with id <code>-1001234567890.</code>
-
-  <code>/accept @username all</code>
-  👆 Accepts all join requests sent to @username chat.
-
-command_del: |-
+del: |-
   💬 By using this command and placing your chat identifier(username or chat id), you can remove chats that you don't need anymore.
 
   <code>/del {chat}...</code>
@@ -44,10 +42,32 @@ command_del: |-
   <code>/del -1001234567890 @Durov @TelegramTips</code>
   👆 You can place all you're chat at once as well
 
+del.succeed: ☑️
+err.del.chat_not_found: 💬 This chat has not yet registered!
+err.del.not_enough_rights: 💬 This chat was registered to another admin, ask the owner to revoke it for you!
+
+
+accept: |-
+  💬 By using this command and placing the desired request amount beside your chat identifier(username or chat id), you can accept their join requests to that specified chat.
+
+  <code>/accept {chat} {amount}</code>
+
+  ❕Remember, to perform this command bot should have required administrator permissions on that chat. 
+
+  🔘Examples:
+  <code>/accept -1001234567890 10</code>
+  👆Accepts 10 join requests in the chat with id <code>-1001234567890.</code>
+
+  <code>/accept @username all</code>
+  👆 Accepts all join requests sent to @username chat.
+
+err.accept.not_enough_rights: 💬 You don't have the right to do that!
+err.accept.chat_not_found: 💬 This chat hasn't been added to the bot yet!
+
+
 # --- Errors ---
-err_database: |-
+err.chat_not_found: 💬 Chat not found! may you check for typos or check if bot is joined to chat or not...
+err.database: |-
   🤕 Error! There was problem in executing your command.
 
   ☑️ Please try again later; this was reported to developers...
-err_chat_exist: |-
-  💬 This chat was registered before!
