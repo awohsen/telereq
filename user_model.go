@@ -1,6 +1,7 @@
 package main
 
 import (
+	tele "gopkg.in/telebot.v3"
 	"os"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ type User struct {
 	ID            string `json:"id" bson:"_id,omitempty"`
 	Role          string `json:"role" bson:"role"`
 	State         string `json:"state" bson:"state"`
+	Locale        string `json:"language_code" bson:"language_code"`
 }
 
 func (m *User) PrepareID(id interface{}) (interface{}, error) {
@@ -39,6 +41,29 @@ func newUser(id int64, role string, state string) *User {
 
 func getUser(u *User, id int64) error {
 	return db.Coll(u).FindByID(USER+strconv.Itoa(int(id)), u)
+}
+
+func setUserLocale(id int64, locale string) error {
+	u := &User{}
+
+	err := getUser(u, id)
+	if err != nil {
+		return err
+	}
+
+	u.Locale = locale
+
+	return db.Coll(u).Update(u)
+}
+
+func getUserLocale(r tele.Recipient) string {
+	u := &User{}
+	userID, _ := strconv.ParseInt(r.Recipient(), 10, 64)
+	err := getUser(u, userID)
+	if err != nil {
+		return "en" // user does not exist or etc ...
+	}
+	return u.Locale
 }
 
 func isManager(id int64) bool {

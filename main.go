@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gopkg.in/telebot.v3/layout"
 	"os"
 	"strconv"
 	"strings"
@@ -16,6 +17,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+var lt *layout.Layout
 
 func main() {
 	_ = godotenv.Load(".env")
@@ -37,6 +40,13 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	lt, err = layout.New("bot.yml")
+	if err != nil {
+		panic(err)
+	}
+
+	b.Use(lt.Middleware("en", getUserLocale))
 
 	b.Handle("/creator", func(c tele.Context) error {
 
@@ -65,17 +75,40 @@ func main() {
 
 				err = db.Coll(&User{}).Create(u)
 				if err != nil {
-					return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+					return c.Reply("err_database")
 				}
-				return c.Reply("🤠 Welcome to robot!")
+				return c.Reply("command_start")
 
 			default:
 				//todo: report error to developers
-				return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+				return c.Reply("err_database")
 			}
 		}
 		return c.Reply("\U0001FAE5")
 	})
+
+	b.Handle("/language", func(c tele.Context) error {
+		args := c.Args()
+
+		if len(args) == 1 {
+			args[0] = strings.ToLower(args[0])
+			switch args[0] {
+			case "en", "fa":
+				err := setUserLocale(c.Sender().ID, args[0])
+				if err != nil {
+					fmt.Println(err)
+					return c.Reply("Err")
+				} else {
+					return c.Reply("✅")
+				}
+			default:
+				return c.Reply("Choose between en or fa")
+			}
+		} else {
+			return c.Reply("This is inline keyboard with languages buttons")
+		}
+	})
+
 	b.Handle("/signout", func(c tele.Context) error {
 		u := &User{}
 
@@ -107,7 +140,7 @@ func main() {
 					case tele.ErrChatNotFound:
 						_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
 					default:
-						_ = c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+						_ = c.Reply("err_database")
 					}
 					continue
 				}
@@ -119,7 +152,7 @@ func main() {
 					case tele.ErrChatNotFound:
 						_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
 					default:
-						_ = c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+						_ = c.Reply("err_database")
 					}
 					continue
 				}
@@ -134,12 +167,12 @@ func main() {
 							newchat := newChat(chat.ID, c.Sender().ID)
 							err = db.Coll(&Chat{}).Create(newchat)
 							if err != nil {
-								return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+								return c.Reply("err_database")
 							}
 
 							_ = c.Reply("✅")
 						default:
-							return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+							return c.Reply("err_database")
 						}
 						continue
 					}
@@ -157,7 +190,7 @@ func main() {
 									case tele.ErrChatNotFound:
 										_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
 									default:
-										_ = c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+										_ = c.Reply("err_database")
 									}
 									continue
 								}
@@ -170,18 +203,18 @@ func main() {
 						}
 						err = delChat(existingChat)
 						if err != nil {
-							return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+							return c.Reply("err_database")
 						}
 
 						newchat := newChat(chat.ID, c.Sender().ID)
 						err = db.Coll(&Chat{}).Create(newchat)
 						if err != nil {
-							return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+							return c.Reply("err_database")
 						}
 
 						_ = c.Reply("✅")
 					} else {
-						_ = c.Reply("💬 This chat was registered before!")
+						_ = c.Reply("err_chat_exist")
 						continue
 					}
 				} else {
@@ -189,19 +222,7 @@ func main() {
 				}
 			}
 		} else {
-			return c.Reply(`💬 By using this command and placing your chat identifier(username or chat id), you can add chats in which you are an admin for further management.
-
-<code>/add {chat}...</code>
-
-❕Remember, to perform this command bot should have required administrator permissions on that chat. 
-
-🔘Examples:
-<code>/add -1001234567890</code>
-<code>/add @username</code>
-👆 Both works
-
-<code>/add -1001234567890 @Durov @TelegramTips</code>
-👆 You can place all you're chat at once as well`)
+			return c.Reply(lt.Text(c, "command_add"))
 		}
 		return nil
 	})
@@ -220,7 +241,7 @@ func main() {
 					case tele.ErrChatNotFound:
 						_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
 					default:
-						_ = c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+						_ = c.Reply("err_database")
 					}
 					continue
 				}
@@ -233,7 +254,7 @@ func main() {
 					case mongo.ErrNoDocuments:
 						_ = c.Reply("💬 This chat has not yet registered!")
 					default:
-						return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+						return c.Reply("err_database")
 					}
 					continue
 				}
@@ -247,7 +268,7 @@ func main() {
 						case tele.ErrChatNotFound:
 							_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
 						default:
-							_ = c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+							_ = c.Reply("err_database")
 						}
 						continue
 					}
@@ -264,7 +285,7 @@ func main() {
 								case tele.ErrChatNotFound:
 									_ = c.Reply("💬 Chat not found! may you check for typos or check if bot is joined to chat or not...")
 								default:
-									_ = c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+									_ = c.Reply("err_database")
 								}
 								continue
 							}
@@ -278,24 +299,12 @@ func main() {
 				}
 				err = delChat(existingChat)
 				if err != nil {
-					return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+					return c.Reply("err_database")
 				}
 				_ = c.Reply("☑️")
 			}
 		} else {
-			return c.Reply(`💬 By using this command and placing your chat identifier(username or chat id), you can remove chats that you don't need anymore.
-
-<code>/del {chat}...</code>
-
-❕Remember, by performing this command all your chat settings would get wiped out!
-
-🔘Examples:
-<code>/del -1001234567890</code>
-<code>/del @username</code>
-👆 Both works
-
-<code>/del -1001234567890 @Durov @TelegramTips</code>
-👆 You can place all you're chat at once as well`)
+			return c.Reply(lt.Text(c, "command_del"))
 		}
 		return nil
 	})
@@ -335,7 +344,7 @@ func main() {
 				case mongo.ErrNoDocuments:
 					return c.Reply("💬 This chat hasn't been added to the bot yet!")
 				default:
-					return c.Reply("🤕 Error! There was problem in executing your command.\n\n☑️ Please try again later; this was reported to developers...")
+					return c.Reply("err_database")
 				}
 			}
 
@@ -364,18 +373,7 @@ func main() {
 				}
 			}
 		} else {
-			return c.Reply(`💬 By using this command and placing the desired request amount beside your chat identifier(username or chat id), you can accept their join requests to that specified chat.
-
-<code>/accept {chat} {amount}</code>
-
-❕Remember, to perform this command bot should have required administrator permissions on that chat. 
-
-🔘Examples:
-<code>/accept -1001234567890 10</code>
-👆Accepts 10 join requests in the chat with id <code>-1001234567890.</code>
-
-<code>/accept @username all</code>
-👆 Accepts all join requests sent to @username chat.`)
+			return c.Reply("command_accept")
 		}
 		return nil
 	})
