@@ -61,7 +61,7 @@ func getUserLocale(r tele.Recipient) string {
 	userID, _ := strconv.ParseInt(r.Recipient(), 10, 64)
 	err := getUser(u, userID)
 	if err != nil {
-		return "en" // user does not exist or etc ...
+		return "en"
 	}
 	return u.Locale
 }
@@ -75,10 +75,7 @@ func isManager(id int64) bool {
 		managers[manager] = true
 	}
 
-	if managers[id] {
-		return true
-	}
-	return false
+	return managers[id]
 }
 
 func isAdmin(id int64) bool {

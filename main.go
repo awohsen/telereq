@@ -128,7 +128,7 @@ func main() {
 		if len(args) >= 1 {
 			for _, arg := range args {
 				if len(args) > 1 {
-					_ = c.Send("💬 Processing chat \"<code>" + arg + "</code>\":") //fixme locales
+					_ = c.Send(strings.Replace(lt.Text(c, "chat.processing"), "%chat%", arg, 1))
 				}
 
 				chat, err := b.ChatByUsername(arg)
@@ -229,7 +229,7 @@ func main() {
 		if len(args) >= 1 {
 			for _, arg := range args {
 				if len(args) > 1 {
-					_ = c.Send("💬 Processing chat \"<code>" + arg + "</code>\":") //fixme locales
+					_ = c.Send(strings.Replace(lt.Text(c, "chat.processing"), "%chat%", arg, 1))
 				}
 				chat, err := b.ChatByUsername(arg)
 

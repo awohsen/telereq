@@ -7,7 +7,8 @@ language: This is inline keyboard with languages buttons
 language.succeed: ✅
 err.language.choose: Choose between en or fa
 
-
+chat.processing: >
+  💬 Processing chat <code>%chat%</code>:
 add: |-
   💬 By using this command and placing your chat identifier(username or chat id), you can add chats in which you are an admin for further management.
   
