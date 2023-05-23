@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	"strconv"
@@ -31,7 +31,7 @@ func (m *Chat) SetID(id interface{}) {
 	m.ID = id.(string)
 }
 
-func newChat(id int64, owner int64) *Chat {
+func NewChat(id int64, owner int64) *Chat {
 	return &Chat{
 		ID:       CHAT + strconv.Itoa(int(id)),
 		Owner:    USER + strconv.Itoa(int(owner)),
@@ -39,15 +39,15 @@ func newChat(id int64, owner int64) *Chat {
 	}
 }
 
-func getChat(c *Chat, id int64) error {
+func GetChat(c *Chat, id int64) error {
 	return db.Coll(c).FindByID(CHAT+strconv.Itoa(int(id)), c)
 }
 
-func delChat(c *Chat) error {
+func DelChat(c *Chat) error {
 	return db.Coll(c).Delete(c)
 }
 
-func appendRequest(c int64, u int64) (result *mongo.UpdateResult, err error) {
+func AppendRequest(c int64, u int64) (result *mongo.UpdateResult, err error) {
 	ctx := db.Ctx()
 	return db.Coll(&Chat{}).UpdateByID(
 		ctx,
@@ -56,7 +56,7 @@ func appendRequest(c int64, u int64) (result *mongo.UpdateResult, err error) {
 	)
 }
 
-func removeRequest(c int64, u int64) (result *mongo.UpdateResult, err error) {
+func RemoveRequest(c int64, u int64) (result *mongo.UpdateResult, err error) {
 	ctx := db.Ctx()
 	return db.Coll(&Chat{}).UpdateByID(
 		ctx,

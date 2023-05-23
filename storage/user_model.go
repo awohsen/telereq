@@ -1,4 +1,4 @@
-package main
+package storage
 
 import (
 	tele "gopkg.in/telebot.v3"
@@ -31,7 +31,7 @@ func (m *User) SetID(id interface{}) {
 	m.ID = id.(string)
 }
 
-func newUser(id int64, role string, state string) *User {
+func NewUser(id int64, role string, state string) *User {
 	return &User{
 		ID:    USER + strconv.Itoa(int(id)),
 		Role:  role,
@@ -39,14 +39,14 @@ func newUser(id int64, role string, state string) *User {
 	}
 }
 
-func getUser(u *User, id int64) error {
+func GetUser(u *User, id int64) error {
 	return db.Coll(u).FindByID(USER+strconv.Itoa(int(id)), u)
 }
 
-func setUserLocale(id int64, locale string) error {
+func SetUserLocale(id int64, locale string) error {
 	u := &User{}
 
-	err := getUser(u, id)
+	err := GetUser(u, id)
 	if err != nil {
 		return err
 	}
@@ -56,17 +56,17 @@ func setUserLocale(id int64, locale string) error {
 	return db.Coll(u).Update(u)
 }
 
-func getUserLocale(r tele.Recipient) string {
+func GetUserLocale(r tele.Recipient) string {
 	u := &User{}
 	userID, _ := strconv.ParseInt(r.Recipient(), 10, 64)
-	err := getUser(u, userID)
+	err := GetUser(u, userID)
 	if err != nil {
 		return "en"
 	}
 	return u.Locale
 }
 
-func isManager(id int64) bool {
+func IsManager(id int64) bool {
 	rawManagers := strings.Split(os.Getenv("MANAGERS"), ",")
 	managers := make(map[int64]bool)
 
@@ -78,10 +78,10 @@ func isManager(id int64) bool {
 	return managers[id]
 }
 
-func isAdmin(id int64) bool {
+func IsAdmin(id int64) bool {
 	u := &User{}
 
-	err := getUser(u, id)
+	err := GetUser(u, id)
 	if err != nil {
 		return false
 	}

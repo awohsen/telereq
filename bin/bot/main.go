@@ -16,6 +16,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	s "github.com/awohsen/telereq/storage"
 )
 
 var lt *layout.Layout
@@ -46,12 +48,12 @@ func main() {
 		panic(err)
 	}
 
-	b.Use(lt.Middleware("en", getUserLocale))
+	b.Use(lt.Middleware("en", s.GetUserLocale))
 
 	b.Handle("/creator", func(c tele.Context) error {
 
-		var chats []Chat
-		coll := db.Coll(&Chat{})
+		var chats []s.Chat
+		coll := db.Coll(&s.Chat{})
 
 		_ = coll.SimpleFind(&chats, bson.M{})
 
@@ -61,19 +63,19 @@ func main() {
 	})
 
 	b.Handle("/start", func(c tele.Context) error {
-		u := &User{}
+		u := &s.User{}
 
-		err := getUser(u, c.Sender().ID)
+		err := s.GetUser(u, c.Sender().ID)
 		if err != nil {
 			switch err {
 			case mongo.ErrNoDocuments:
-				u := newUser(c.Sender().ID, "normal", "main")
+				u := s.NewUser(c.Sender().ID, "normal", "main")
 
-				if isManager(c.Sender().ID) {
+				if s.IsManager(c.Sender().ID) {
 					u.Role = "manager"
 				}
 
-				err = db.Coll(&User{}).Create(u)
+				err = db.Coll(&s.User{}).Create(u)
 				if err != nil {
 					return c.Reply(lt.Text(c, "err.database"))
 				}
@@ -93,7 +95,7 @@ func main() {
 			args[0] = strings.ToLower(args[0])
 			switch args[0] {
 			case "en", "fa":
-				err := setUserLocale(c.Sender().ID, args[0])
+				err := s.SetUserLocale(c.Sender().ID, args[0])
 				if err != nil {
 					return c.Reply(lt.Text(c, "err.database"))
 				} else {
@@ -108,9 +110,9 @@ func main() {
 	})
 
 	b.Handle("/signout", func(c tele.Context) error {
-		u := &User{}
+		u := &s.User{}
 
-		err := db.Coll(u).FindByID(USER+strconv.Itoa(int(c.Sender().ID)), u)
+		err := db.Coll(u).FindByID(s.USER+strconv.Itoa(int(c.Sender().ID)), u)
 		if err != nil {
 			return c.Reply(lt.Text(c, "err.database"))
 		}
@@ -156,14 +158,14 @@ func main() {
 				}
 
 				if u.Role == tele.Creator || u.Role == tele.Administrator {
-					existingChat := &Chat{}
+					existingChat := &s.Chat{}
 
-					err := getChat(existingChat, chat.ID)
+					err := s.GetChat(existingChat, chat.ID)
 					if err != nil {
 						switch err {
 						case mongo.ErrNoDocuments:
-							newChat := newChat(chat.ID, c.Sender().ID)
-							err = db.Coll(&Chat{}).Create(newChat)
+							newChat := s.NewChat(chat.ID, c.Sender().ID)
+							err = db.Coll(&s.Chat{}).Create(newChat)
 							if err != nil {
 								return c.Reply(lt.Text(c, "err.database"))
 							}
@@ -174,12 +176,12 @@ func main() {
 						continue
 					}
 
-					if USER+strconv.Itoa(int(c.Sender().ID)) != existingChat.Owner {
+					if s.USER+strconv.Itoa(int(c.Sender().ID)) != existingChat.Owner {
 						// it is ok for chat owner to revoke access of admins over bot
 						if u.Role != tele.Creator {
 							// other admin only can revoke if the user who submitted chat; is no more admin there
 							if u.Role == tele.Administrator {
-								oldAdminID := strings.TrimPrefix(existingChat.Owner, USER)
+								oldAdminID := strings.TrimPrefix(existingChat.Owner, s.USER)
 								oldAdmin, err := b.ChatMemberOf(chat, ChatID(oldAdminID))
 
 								if err != nil {
@@ -198,13 +200,13 @@ func main() {
 								}
 							}
 						}
-						err = delChat(existingChat)
+						err = s.DelChat(existingChat)
 						if err != nil {
 							return c.Reply(lt.Text(c, "err.database"))
 						}
 
-						newChat := newChat(chat.ID, c.Sender().ID)
-						err = db.Coll(&Chat{}).Create(newChat)
+						newChat := s.NewChat(chat.ID, c.Sender().ID)
+						err = db.Coll(&s.Chat{}).Create(newChat)
 						if err != nil {
 							return c.Reply(lt.Text(c, "err.database"))
 						}
@@ -243,9 +245,9 @@ func main() {
 					continue
 				}
 
-				existingChat := &Chat{}
+				existingChat := &s.Chat{}
 
-				err = getChat(existingChat, chat.ID)
+				err = s.GetChat(existingChat, chat.ID)
 				if err != nil {
 					switch err {
 					case mongo.ErrNoDocuments:
@@ -257,7 +259,7 @@ func main() {
 				}
 
 				// someone trying to revoke access
-				if USER+strconv.Itoa(int(c.Sender().ID)) != existingChat.Owner {
+				if s.USER+strconv.Itoa(int(c.Sender().ID)) != existingChat.Owner {
 					u, err := b.ChatMemberOf(chat, c.Sender())
 
 					if err != nil {
@@ -274,7 +276,7 @@ func main() {
 					if u.Role != tele.Creator {
 						// other admin only can revoke if the user who submitted chat; is no more admin there
 						if u.Role == tele.Administrator {
-							oldAdminID := strings.TrimPrefix(existingChat.Owner, USER)
+							oldAdminID := strings.TrimPrefix(existingChat.Owner, s.USER)
 							oldAdmin, err := b.ChatMemberOf(chat, ChatID(oldAdminID))
 
 							if err != nil {
@@ -294,7 +296,7 @@ func main() {
 						}
 					}
 				}
-				err = delChat(existingChat)
+				err = s.DelChat(existingChat)
 				if err != nil {
 					return c.Reply(lt.Text(c, "err.database"))
 				}
@@ -307,7 +309,7 @@ func main() {
 	})
 
 	b.Handle(tele.OnChatJoinRequest, func(c tele.Context) error {
-		_, err := appendRequest(c.ChatJoinRequest().Chat.ID, c.ChatJoinRequest().Sender.ID)
+		_, err := s.AppendRequest(c.ChatJoinRequest().Chat.ID, c.ChatJoinRequest().Sender.ID)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -319,7 +321,7 @@ func main() {
 		if len(args) == 2 {
 			chatID, _ := strconv.ParseInt(args[0], 10, 64)
 
-			chat := &Chat{}
+			chat := &s.Chat{}
 			opt := &options.FindOneOptions{}
 
 			switch args[1] {
@@ -334,7 +336,7 @@ func main() {
 				}
 			}
 
-			err := db.Coll(chat).FindByID(CHAT+strconv.Itoa(int(chatID)), chat, opt)
+			err := db.Coll(chat).FindByID(s.CHAT+strconv.Itoa(int(chatID)), chat, opt)
 
 			if err != nil {
 				switch err {
@@ -345,15 +347,19 @@ func main() {
 				}
 			}
 
-			if USER+strconv.Itoa(int(c.Sender().ID)) != chat.Owner {
+			if s.USER+strconv.Itoa(int(c.Sender().ID)) != chat.Owner {
 				return c.Reply(lt.Text(c, "err.accept.not_enough_rights"))
 			}
 
 			if len(chat.Requests) >= 1 {
+				start := time.Now()
+				succeeded, failed := 0, 0
 				for _, user := range chat.Requests {
 					err := b.ApproveJoinRequest(ChatID(args[0]), &tele.User{ID: user})
 
 					if err != nil {
+						failed++
+
 						switch err.Error() {
 						case ErrAlreadyParticipant.Error():
 						case ErrChannelsTooMuch.Error():
@@ -364,11 +370,16 @@ func main() {
 							fmt.Println(err)
 							continue
 						}
-
-						_, _ = removeRequest(chatID, user) // we do want to save some as failed, but let keep it simple for now
+					} else {
+						succeeded++
 					}
+
+					_, _ = s.RemoveRequest(chatID, user) // we do want to save some as failed, but let keep it simple for now
 				}
+
+				return c.Reply("✅ به %cs% درخواست در %t% با موفقیت پاسخ داده شد.\n\n👤 اعضای چت: ca (+ca-cb)\n\n⚠️ از call درخواست، تعداد cf (%f) با خطا مواجه شد!" + time.Since(start).String())
 			}
+
 		} else {
 			return c.Reply(lt.Text(c, "accept"))
 		}
