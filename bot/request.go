@@ -57,10 +57,12 @@ func (b Bot) onAccept(c tele.Context) error {
 		}
 
 		if len(chat.Requests) >= 1 {
-			start := time.Now()
+			count := len(chat.Requests)
 			succeeded, failed := 0, 0
+			targetChat := ChatID(args[0])
+			start := time.Now()
 			for _, user := range chat.Requests {
-				err := b.ApproveJoinRequest(b.ChatID(args[0]), &tele.User{ID: user})
+				err := b.ApproveJoinRequest(targetChat, &tele.User{ID: user})
 
 				if err != nil {
 					failed++
@@ -82,7 +84,17 @@ func (b Bot) onAccept(c tele.Context) error {
 				_, _ = s.RemoveRequest(chatID, user) // we do want to save some as failed, but let keep it simple for now
 			}
 
-			return c.Reply("✅ به %cs% درخواست در %t% با موفقیت پاسخ داده شد.\n\n👤 اعضای چت: ca (+ca-cb)\n\n⚠️ از call درخواست، تعداد cf (%f) با خطا مواجه شد!" + time.Since(start).String())
+			p := AnswerRequestResponse{
+				Count:      count,
+				Time:       time.Since(start).String(),
+				Succeed:    succeeded,
+				Failed:     failed,
+				After:      0,
+				Differance: 0,
+				FailRatio:  failed / count * 100,
+			}
+
+			return c.Reply(b.Text(c, "request_answer.result", p))
 		}
 
 	} else {

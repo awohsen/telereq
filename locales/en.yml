@@ -65,6 +65,11 @@ accept: |-
 err.accept.not_enough_rights: 💬 You don't have the right to do that!
 err.accept.chat_not_found: 💬 This chat hasn't been added to the bot yet!
 
+request_answer.result: |-
+  ✅ {{ .Succeed }} requests answered successfully in {{ .Time }}. 
+  👤 👤👤Chat members: {{ .After }} ({{ .Differance }})
+
+   ⚠️ From {{ .Count }} requests {{ .Failed }} (%{{ .FailRatio }}) failed!
 
 # --- Errors ---
 err.chat_not_found: 💬 Chat not found! may you check for typos or check if bot is joined to chat or not...
