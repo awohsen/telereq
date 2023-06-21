@@ -31,22 +31,37 @@ func (m *User) SetID(id interface{}) {
 	m.ID = id.(string)
 }
 
-func NewUser(id int64, role string, state string) *User {
-	return &User{
-		ID:    USER + strconv.Itoa(int(id)),
+func NewUser(user *tele.User, role string, state string) error {
+	u := &User{
+		ID:    user.Recipient(),
 		Role:  role,
 		State: state,
 	}
+
+	return db.Coll(u).Create(u)
 }
 
-func GetUser(u *User, id int64) error {
-	return db.Coll(u).FindByID(USER+strconv.Itoa(int(id)), u)
-}
-
-func SetUserLocale(id int64, locale string) error {
+func GetUser(user tele.Recipient) (*User, error) {
 	u := &User{}
+	err := db.Coll(u).FindByID(user.Recipient(), u)
+	if err != nil {
+		return nil, err
+	}
 
-	err := GetUser(u, id)
+	return u, nil
+}
+
+func GetUserLocale(r tele.Recipient) string {
+	u, err := GetUser(r)
+	if err != nil {
+		return "en"
+	}
+
+	return u.Locale
+}
+
+func SetUserLocale(user *tele.User, locale string) error {
+	u, err := GetUser(user)
 	if err != nil {
 		return err
 	}
@@ -76,19 +91,4 @@ func IsManager(id int64) bool {
 	}
 
 	return managers[id]
-}
-
-func IsAdmin(id int64) bool {
-	u := &User{}
-
-	err := GetUser(u, id)
-	if err != nil {
-		return false
-	}
-
-	if u.Role == "manager" || u.Role == "admin" {
-		return true
-	}
-
-	return false
 }
